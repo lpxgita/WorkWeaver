@@ -1,0 +1,167 @@
+# =============================================================================
+# Work Monitor - 统一配置文件
+# =============================================================================
+# 本文件同时驱动 auto_screenshot 和 ai_summary 两个模块
+# 复制为 config.yaml 并根据需要修改
+#
+# 共享字段（screenshot / schedule）两个模块自动同步读取
+# 模块独占字段只对对应模块生效
+
+# -----------------------------------------------------------------------------
+# 截图设置（共享：auto_screenshot 产出 + ai_summary 读取）
+# -----------------------------------------------------------------------------
+screenshot:
+  # 截图间隔（秒）
+  # 范围: 1-3600
+  # 默认: 10
+  # 注意: ai_summary 会根据此值自动计算 screenshots_per_minute = 60/interval
+  interval: 10
+
+  # 图片格式
+  # 可选: jpeg | png
+  # 默认: jpeg
+  # 注意: 两个模块共享此值，确保截图输出格式与读取格式一致
+  format: "jpeg"
+
+  # JPEG 质量（仅 auto_screenshot 使用）
+  # 范围: 1-100
+  # 默认: 80
+  quality: 80
+
+  # 截图尺寸百分比（仅 auto_screenshot 使用）
+  # 可选: 25 | 50 | 75 | 100
+  # 默认: 100
+  dimension: 100
+
+  # 显示器选择（仅 auto_screenshot 使用）
+  # 可选: "all" | [0] | [0, 1]
+  # 默认: "all"
+  monitors: "all"
+
+# -----------------------------------------------------------------------------
+# 截图存储设置（仅 auto_screenshot 使用）
+# -----------------------------------------------------------------------------
+storage:
+  # 保存目录（支持相对路径、绝对路径和 ~ 路径）
+  # 相对路径基于模块脚本所在目录解析
+  # ~ 会自动展开为用户主目录（Mac: /Users/xxx, Windows: C:\Users\xxx）
+  # 默认: "./screenshots"
+  # 注意: ai_summary 会自动根据此路径读取截图，无需手动对齐
+  directory: "./screenshots"
+
+  # 文件命名设置
+  # !! 重要: 请勿修改命名规则 !!
+  # ai_summary 依赖固定格式 {date}_{time}_{monitor}.ext 解析截图时间戳
+  naming:
+    pattern: "{date}_{time}_{monitor}"
+    date_format: "YYYY-MM-DD"
+    time_format: "HH-mm-ss"
+
+  # 是否按日期创建子目录
+  # !! 重要: 必须保持 true !!
+  # ai_summary 依赖 YYYY-MM-DD 子目录结构检索截图
+  # 默认: true
+  organize_by_date: true
+
+# -----------------------------------------------------------------------------
+# Gemini API 设置（仅 ai_summary 使用）
+# -----------------------------------------------------------------------------
+gemini:
+  # Google API Key（必填，启动 ai_summary 时校验）
+  api_key: ""
+
+  # 模型名称
+  # 默认: "gemini-3-flash-preview"
+  model: "gemini-3-flash-preview"
+
+  # API 调用失败重试次数
+  # 默认: 3
+  max_retries: 3
+
+  # 重试间隔（秒）
+  # 默认: 2
+  retry_delay: 2
+
+# -----------------------------------------------------------------------------
+# AI 总结设置（仅 ai_summary 使用）
+# -----------------------------------------------------------------------------
+summary:
+  # 总结输出目录
+  # 推荐使用绝对路径或 ~ 路径，避免打包后写入 .app 内部
+  # 默认: "~/Documents/work_monitor/summaries"
+  directory: "~/Documents/work_monitor/summaries"
+
+  # 各粒度配置
+  granularity:
+    2min:
+      # 是否启用2分钟级别总结
+      enabled: true
+      # 每分钟截图数量（自动由 60/screenshot.interval 计算，此处为覆盖值）
+      # 2分钟总结会读取 2 * screenshots_per_minute 张截图
+      # screenshots_per_minute: 6
+      # 需要读取过去多少分钟的2min总结作为上下文（会按2分钟粒度折算条数）
+      history_minutes: 9
+
+    10min:
+      # 是否启用10分钟级别总结
+      enabled: true
+      # 需要读取过去多少个10min总结作为上下文
+      history_count: 5
+
+    1h:
+      # 是否启用1小时级别总结
+      enabled: true
+      # 最近的10min总结数量
+      recent_10min_count: 6
+      # 更早的10min总结数量
+      earlier_10min_count: 6
+
+# -----------------------------------------------------------------------------
+# 时间调度设置（共享：两个模块同步使用同一时间窗口）
+# -----------------------------------------------------------------------------
+schedule:
+  # 是否启用时间限制
+  # false: 全天候运行
+  # true: 仅在指定时间范围和工作日运行
+  # 默认: false
+  enabled: false
+
+  # 开始时间 (HH:MM 格式)
+  start_time: "08:00"
+
+  # 结束时间 (HH:MM 格式)
+  end_time: "22:00"
+
+  # 允许运行的工作日
+  # 可选: Sun | Mon | Tue | Wed | Thu | Fri | Sat
+  days:
+    - Mon
+    - Tue
+    - Wed
+    - Thu
+    - Fri
+
+  # 停止时间点（可选）
+  # 配置后服务会在到达最近的停止时间时自动退出
+  # 例: ["12:00", "19:00"]
+  stop_times:
+    - "12:00"
+    - "19:00"
+
+# -----------------------------------------------------------------------------
+# 日志设置（各模块独立配置）
+# -----------------------------------------------------------------------------
+logging:
+  # 日志级别（两个模块共享）
+  # 可选: debug | info | warn | error
+  level: "info"
+
+  # 是否输出到控制台（两个模块共享）
+  console: true
+
+  # auto_screenshot 日志文件路径
+  # 推荐使用绝对路径或 ~ 路径，避免打包后写入 .app 内部
+  screenshot_file: "~/Documents/work_monitor/logs/screenshot.log"
+
+  # ai_summary 日志文件路径
+  summary_file: "~/Documents/work_monitor/logs/ai-summary.log"

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>Work Monitor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 顶部标题栏（可拖拽区域） -->
+    <header class="titlebar" id="titlebar">
+        <div class="titlebar-drag"></div>
+        <div class="titlebar-title">Work Monitor</div>
+    </header>
+
+    <!-- 侧边导航 -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">WM</div>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item active" data-page="dashboard">
+                <span class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                </span>
+                <span class="nav-label">仪表盘</span>
+            </li>
+            <li class="nav-item" data-page="screenshots">
+                <span class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                </span>
+                <span class="nav-label">截图服务</span>
+            </li>
+            <li class="nav-item" data-page="summary">
+                <span class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
+                        <path d="M12 8v4l3 3"/>
+                    </svg>
+                </span>
+                <span class="nav-label">AI 总结</span>
+            </li>
+            <li class="nav-item" data-page="config">
+                <span class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </span>
+                <span class="nav-label">配置</span>
+            </li>
+            <li class="nav-item" data-page="token-stats">
+                <span class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20V10"/>
+                        <path d="M18 20V4"/>
+                        <path d="M6 20v-4"/>
+                    </svg>
+                </span>
+                <span class="nav-label">API 用量</span>
+            </li>
+            <li class="nav-item" data-page="todo">
+                <span class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                </span>
+                <span class="nav-label">Todo</span>
+            </li>
+            <li class="nav-item" data-page="logs">
+                <span class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10,9 9,9 8,9"/>
+                    </svg>
+                </span>
+                <span class="nav-label">日志</span>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="content" id="content">
+        <!-- ========== 仪表盘页面 ========== -->
+        <section class="page active" id="page-dashboard">
+            <div class="page-header">
+                <h1>仪表盘</h1>
+                <span class="page-desc">服务总览与快捷操作</span>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- 截图服务卡片 -->
+                <div class="status-card" id="card-screenshot">
+                    <div class="card-header">
+                        <div class="card-icon screenshot-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                <line x1="8" y1="21" x2="16" y2="21"/>
+                                <line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                        </div>
+                        <div class="card-title">
+                            <h3>截图服务</h3>
+                            <span class="status-badge stopped" id="status-screenshot">已停止</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="info-row">
+                                <span class="info-label">PID</span>
+                                <span class="info-value" id="info-screenshot-pid">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">启动时间</span>
+                                <span class="info-value" id="info-screenshot-time">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-start" id="btn-start-screenshot">启动</button>
+                    </div>
+                </div>
+
+                <!-- AI 总结服务卡片 -->
+                <div class="status-card" id="card-summary">
+                    <div class="card-header">
+                        <div class="card-icon summary-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
+                                <path d="M12 8v4l3 3"/>
+                            </svg>
+                        </div>
+                        <div class="card-title">
+                            <h3>AI 总结服务</h3>
+                            <span class="status-badge stopped" id="status-summary">已停止</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="info-row">
+                                <span class="info-label">PID</span>
+                                <span class="info-value" id="info-summary-pid">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">启动时间</span>
+                                <span class="info-value" id="info-summary-time">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-start" id="btn-start-summary">启动</button>
+                    </div>
+                </div>
+
+                <!-- 快捷配置信息 -->
+                <div class="status-card config-card" id="card-config-info">
+                    <div class="card-header">
+                        <div class="card-icon config-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68"/>
+                            </svg>
+                        </div>
+                        <div class="card-title">
+                            <h3>当前配置</h3>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="info-row">
+                                <span class="info-label">截图间隔</span>
+                                <span class="info-value" id="info-interval">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">图片格式</span>
+                                <span class="info-value" id="info-format">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Gemini 模型</span>
+                                <span class="info-value" id="info-model">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">时间限制</span>
+                                <span class="info-value" id="info-schedule">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" id="btn-config-edit">编辑配置</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== 截图服务页面 ========== -->
+        <section class="page" id="page-screenshots">
+            <div class="page-header">
+                <h1>截图服务</h1>
+                <span class="page-desc">管理自动截图服务，查看最近截图</span>
+            </div>
+
+            <div class="toolbar">
+                <button class="btn btn-start" id="btn-ss-toggle">启动服务</button>
+                <button class="btn btn-secondary" id="btn-refresh-screenshots">刷新截图</button>
+                <button class="btn btn-secondary" id="btn-cleanup-screenshots" title="清理过期截图：删除30天前的文件夹，稀疏处理7-30天的截图">清理截图</button>
+            </div>
+
+            <div class="screenshot-gallery" id="screenshot-gallery">
+                <div class="empty-state">
+                    <p>暂无截图数据</p>
+                    <p class="empty-hint">启动截图服务后将在此展示最新截图</p>
+                </div>
+            </div>
+
+            <!-- 截图预览弹窗 -->
+            <div class="modal-overlay" id="screenshot-modal" style="display:none;">
+                <div class="modal-content screenshot-preview">
+                    <button class="modal-close">&times;</button>
+                    <img id="screenshot-preview-img" src="" alt="截图预览"/>
+                    <div class="screenshot-info" id="screenshot-preview-info"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== AI 总结页面 ========== -->
+        <section class="page" id="page-summary">
+            <div class="page-header">
+                <h1>AI 总结</h1>
+                <span class="page-desc">查看各粒度的 AI 工作总结</span>
+            </div>
+
+            <div class="toolbar">
+                <button class="btn btn-start" id="btn-sm-toggle">启动服务</button>
+                <div class="toolbar-group">
+                    <select class="select" id="summary-date">
+                        <option value="">选择日期</option>
+                    </select>
+                    <div class="tab-group" id="granularity-tabs">
+                        <button class="tab active" data-granularity="2min">2 分钟</button>
+                        <button class="tab" data-granularity="10min">10 分钟</button>
+                        <button class="tab" data-granularity="1h">1 小时</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-timeline-section" id="summary-timeline-section" style="display:none;">
+                <div class="summary-timeline-header">
+                    <h3>时间轴</h3>
+                    <span class="summary-timeline-hint">基于 10 分钟总结的活动时间轴</span>
+                </div>
+                <!-- 时间线筛选器 -->
+                <div class="timeline-filter" id="timeline-filter" style="display:none;">
+                    <div class="timeline-filter-list" id="timeline-filter-list"></div>
+                </div>
+                <div class="summary-timeline" id="summary-timeline">
+                    <div class="empty-state">
+                        <p>暂无时间轴数据</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-list" id="summary-list">
+                <div class="empty-state">
+                    <p>暂无总结数据</p>
+                    <p class="empty-hint">选择日期和粒度查看 AI 总结</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== 配置页面 ========== -->
+        <section class="page" id="page-config">
+            <div class="page-header">
+                <h1>配置管理</h1>
+                <span class="page-desc">编辑 Work Monitor 的运行配置</span>
+            </div>
+
+            <div class="config-container">
+                <form id="config-form">
+                    <!-- 截图设置 -->
+                    <fieldset class="config-section">
+                        <legend>截图设置</legend>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="cfg-interval">截图间隔（秒）</label>
+                                <input type="number" id="cfg-interval" min="1" max="3600" value="10">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg-format">图片格式</label>
+                                <select id="cfg-format">
+                                    <option value="jpeg">JPEG</option>
+                                    <option value="png">PNG</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg-quality">JPEG 质量</label>
+                                <input type="number" id="cfg-quality" min="1" max="100" value="80">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg-dimension">尺寸百分比</label>
+                                <select id="cfg-dimension">
+                                    <option value="25">25%</option>
+                                    <option value="50">50%</option>
+                                    <option value="75">75%</option>
+                                    <option value="100">100%</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- 存储设置 -->
+                    <fieldset class="config-section">
+                        <legend>存储设置</legend>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="cfg-storage-dir">截图保存目录</label>
+                                <input type="text" id="cfg-storage-dir" value="~/Documents/auto_screenshot">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Gemini API 设置 -->
+                    <fieldset class="config-section">
+                        <legend>Gemini API 设置</legend>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="cfg-api-key">API Key</label>
+                                <input type="password" id="cfg-api-key" placeholder="输入 Google API Key">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg-model">模型名称</label>
+                                <input type="text" id="cfg-model" value="gemini-3-flash-preview">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg-retries">重试次数</label>
+                                <input type="number" id="cfg-retries" min="0" max="10" value="3">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- 时间窗口限制（跳过） -->
+                    <fieldset class="config-section">
+                        <legend>时间窗口限制</legend>
+                        <p class="section-hint">启用后，服务仅在指定时间段和工作日内执行任务，超出范围的任务会被跳过（服务进程不会退出）。</p>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="cfg-schedule-enabled">
+                                    <span>启用时间限制</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg-start-time">开始时间</label>
+                                <input type="time" id="cfg-start-time" value="08:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg-end-time">结束时间</label>
+                                <input type="time" id="cfg-end-time" value="22:00">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>工作日</label>
+                                <div class="day-selector">
+                                    <label class="day-checkbox"><input type="checkbox" value="Mon" class="cfg-day"> 一</label>
+                                    <label class="day-checkbox"><input type="checkbox" value="Tue" class="cfg-day"> 二</label>
+                                    <label class="day-checkbox"><input type="checkbox" value="Wed" class="cfg-day"> 三</label>
+                                    <label class="day-checkbox"><input type="checkbox" value="Thu" class="cfg-day"> 四</label>
+                                    <label class="day-checkbox"><input type="checkbox" value="Fri" class="cfg-day"> 五</label>
+                                    <label class="day-checkbox"><input type="checkbox" value="Sat" class="cfg-day"> 六</label>
+                                    <label class="day-checkbox"><input type="checkbox" value="Sun" class="cfg-day"> 日</label>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- 自动停止（退出） -->
+                    <fieldset class="config-section">
+                        <legend>自动停止</legend>
+                        <p class="section-hint">到达指定时间后，服务进程将自动退出。无需启用上方的"时间窗口限制"即可独立生效。</p>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="cfg-stop-times">停止时间点（逗号分隔）</label>
+                                <input type="text" id="cfg-stop-times" placeholder="例如: 12:00, 19:00">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- 日志设置 -->
+                    <fieldset class="config-section">
+                        <legend>日志设置</legend>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="cfg-log-level">日志级别</label>
+                                <select id="cfg-log-level">
+                                    <option value="debug">Debug</option>
+                                    <option value="info">Info</option>
+                                    <option value="warn">Warn</option>
+                                    <option value="error">Error</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="cfg-console" checked>
+                                    <span>控制台输出</span>
+                                </label>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存配置</button>
+                        <button type="button" class="btn btn-secondary" id="btn-config-reset">重置</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ========== API 用量统计页面 ========== -->
+        <section class="page" id="page-token-stats">
+            <div class="page-header">
+                <h1>API 用量统计</h1>
+                <span class="page-desc">查看 Gemini API 的 Token 消耗，按时间段和功能粒度分类</span>
+            </div>
+
+            <div class="toolbar">
+                <div class="toolbar-group" style="margin-left: 0;">
+                    <select class="select" id="ts-date">
+                        <option value="">选择日期</option>
+                    </select>
+                    <select class="select" id="ts-session">
+                        <option value="">全部会话</option>
+                    </select>
+                </div>
+                <div class="toolbar-group">
+                    <input type="time" class="select" id="ts-start-minute" placeholder="开始" title="开始时间">
+                    <span style="color: var(--text-muted);">—</span>
+                    <input type="time" class="select" id="ts-end-minute" placeholder="结束" title="结束时间">
+                    <button class="btn btn-secondary btn-sm" id="btn-ts-filter">筛选</button>
+                    <button class="btn btn-secondary btn-sm" id="btn-ts-reset">重置</button>
+                </div>
+            </div>
+
+            <!-- 总览卡片 -->
+            <div class="ts-overview" id="ts-overview">
+                <div class="ts-card ts-card-total">
+                    <div class="ts-card-label">总 Token</div>
+                    <div class="ts-card-value" id="ts-total-tokens">0</div>
+                    <div class="ts-card-sub" id="ts-total-calls">0 次调用</div>
+                </div>
+                <div class="ts-card ts-card-input">
+                    <div class="ts-card-label">输入 Token</div>
+                    <div class="ts-card-value" id="ts-prompt-tokens">0</div>
+                    <div class="ts-card-sub"><span id="ts-text-tokens">0</span> 文本 / <span id="ts-image-tokens">0</span> 图片</div>
+                </div>
+                <div class="ts-card ts-card-output">
+                    <div class="ts-card-label">输出 Token</div>
+                    <div class="ts-card-value" id="ts-candidates-tokens">0</div>
+                    <div class="ts-card-sub">思考: <span id="ts-thoughts-tokens">0</span></div>
+                </div>
+            </div>
+
+            <!-- 按粒度分类 -->
+            <div class="ts-section">
+                <h3 class="ts-section-title">按功能粒度</h3>
+                <div class="ts-granularity-grid" id="ts-granularity-grid">
+                    <div class="empty-state"><p>暂无数据</p></div>
+                </div>
+            </div>
+
+            <!-- 按分钟时间线 -->
+            <div class="ts-section">
+                <h3 class="ts-section-title">按分钟时间线</h3>
+                <div class="ts-timeline" id="ts-timeline">
+                    <div class="empty-state"><p>暂无数据</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== Todo List 页面 ========== -->
+        <section class="page" id="page-todo">
+            <div class="page-header">
+                <h1>Todo List</h1>
+                <span class="page-desc">任务管理与行为目录</span>
+            </div>
+
+            <!-- Tab 切换：任务 / 行为目录 -->
+            <div class="toolbar">
+                <div class="tab-group" id="todo-tabs">
+                    <button class="tab active" data-todo-tab="tasks">任务列表</button>
+                    <button class="tab" data-todo-tab="behaviors">行为目录</button>
+                </div>
+            </div>
+
+            <!-- 任务列表区域 -->
+            <div class="todo-panel" id="todo-panel-tasks">
+                <!-- 新建任务输入 -->
+                <div class="todo-add-bar">
+                    <input type="text" class="todo-input" id="todo-new-title" placeholder="输入新任务标题，按 Enter 创建...">
+                    <button class="btn btn-primary btn-sm" id="btn-todo-add">添加任务</button>
+                </div>
+
+                <!-- 任务列表 -->
+                <div class="todo-list" id="todo-list">
+                    <div class="empty-state">
+                        <p>暂无任务</p>
+                        <p class="empty-hint">在上方输入框中创建你的第一个任务</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 行为目录区域 -->
+            <div class="todo-panel" id="todo-panel-behaviors" style="display: none;">
+                <!-- 新建行为输入 -->
+                <div class="todo-add-bar">
+                    <input type="text" class="todo-input" id="behavior-new-name" placeholder="输入新行为名称，如“浏览网站”...">
+                    <button class="btn btn-primary btn-sm" id="btn-behavior-add">添加行为</button>
+                </div>
+
+                <!-- 行为列表 -->
+                <div class="behavior-list" id="behavior-list">
+                    <div class="empty-state">
+                        <p>暂无行为</p>
+                        <p class="empty-hint">添加你每天都会进行的常见操作</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 任务详情弹窗 -->
+            <div class="modal-overlay" id="todo-detail-modal" style="display:none;">
+                <div class="modal-content todo-detail-content">
+                    <div class="modal-header">
+                        <h3 id="todo-detail-title" class="detail-title-editable" title="点击编辑标题">任务详情</h3>
+                        <button class="todo-action-btn" id="todo-detail-rename-btn" title="重命名任务" style="margin-left: 8px; margin-right: auto;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="modal-close" id="todo-detail-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 描述编辑 -->
+                        <div class="todo-detail-section">
+                            <label>描述</label>
+                            <textarea class="todo-textarea" id="todo-detail-desc" placeholder="添加任务描述..."></textarea>
+                            <button class="btn btn-secondary btn-sm" id="btn-todo-save-desc">保存描述</button>
+                        </div>
+                        <!-- 子任务区域 -->
+                        <div class="todo-detail-section">
+                            <label>子任务</label>
+                            <div class="todo-subtask-add">
+                                <input type="text" class="todo-input todo-input-sm" id="todo-subtask-title" placeholder="添加子任务...">
+                                <button class="btn btn-secondary btn-sm" id="btn-todo-add-subtask">添加</button>
+                            </div>
+                            <div class="todo-subtask-list" id="todo-subtask-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== 日志页面 ========== -->
+        <section class="page" id="page-logs">
+            <div class="page-header">
+                <h1>运行日志</h1>
+                <span class="page-desc">实时查看服务运行日志</span>
+            </div>
+
+            <div class="toolbar">
+                <div class="tab-group">
+                    <button class="tab active" data-log="screenshot">截图服务</button>
+                    <button class="tab" data-log="summary">AI 总结</button>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-log-clear">清除日志</button>
+            </div>
+
+            <div class="log-container" id="log-container">
+                <div class="log-empty">等待日志...</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 全局消息提示 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

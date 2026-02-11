@@ -1,0 +1,23 @@
+{
+  "name": "ai-summary",
+  "version": "1.0.0",
+  "description": "AI 屏幕活动总结服务，基于 Google Gemini 多时间粒度总结",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "start:config": "node main.js --config"
+  },
+  "keywords": [
+    "ai",
+    "summary",
+    "gemini",
+    "screen-monitor"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "uuid": "^13.0.0",
+    "yaml": "^2.3.0"
+  }
+}

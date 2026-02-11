@@ -1,0 +1,65 @@
+{
+  "name": "work-weaver",
+  "version": "1.0.7",
+  "description": "WorkWeaver - 工作活动监控桌面应用",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "prebuild": "node scripts/install-deps.js",
+    "build": "electron-builder --mac",
+    "build:dmg": "electron-builder --mac dmg"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "uuid": "^13.0.0",
+    "yaml": "^2.3.0"
+  },
+  "build": {
+    "appId": "com.workweaver.app",
+    "productName": "WorkWeaver",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/.cache/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../auto_screenshot",
+        "to": "auto_screenshot",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../ai_summary",
+        "to": "ai_summary",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../config.yaml",
+        "to": "config.yaml"
+      },
+      {
+        "from": "../config.example.yaml",
+        "to": "config.example.yaml"
+      }
+    ],
+    "asar": true
+  }
+}

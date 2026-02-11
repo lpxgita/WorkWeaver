@@ -1,0 +1,22 @@
+{
+  "name": "auto-screenshot",
+  "version": "1.0.0",
+  "description": "命令行自动截图服务，通过配置文件控制截图行为",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "start:config": "node main.js --config"
+  },
+  "keywords": [
+    "screenshot",
+    "automation",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "screenshot-desktop": "^1.15.0",
+    "sharp": "^0.33.0",
+    "yaml": "^2.3.0"
+  }
+}

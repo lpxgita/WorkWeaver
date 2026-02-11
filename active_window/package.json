@@ -1,0 +1,23 @@
+{
+    "name": "active-window-monitor",
+    "version": "2.0.0",
+    "description": "macOS 状态栏工具 - 实时显示当前焦点窗口名称",
+    "main": "tray-app.js",
+    "scripts": {
+        "start": "electron tray-app.js",
+        "cli": "node main.js",
+        "test": "node main.js --duration 10"
+    },
+    "keywords": [
+        "active-window",
+        "macos",
+        "focus",
+        "monitor",
+        "tray",
+        "menubar"
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "electron": "^33.0.0"
+    }
+}

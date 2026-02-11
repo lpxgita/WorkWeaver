@@ -1,0 +1,14 @@
+# 依赖
+node_modules/
+
+# 日志
+logs/*.log
+
+# 截图输出
+screenshots/
+
+# 用户配置（保留示例）
+config.yaml
+
+# 系统文件
+.DS_Store
