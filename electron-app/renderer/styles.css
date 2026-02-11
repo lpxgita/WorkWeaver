@@ -217,6 +217,59 @@ body {
     color: var(--text-muted);
 }
 
+/* ========== 一键启停 ========== */
+.all-services-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+}
+
+.all-services-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.btn-all-start {
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 28px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn-all-start:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn-all-stop {
+    background: linear-gradient(135deg, var(--accent-red), #e04040);
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 28px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn-all-stop:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
 /* ========== 仪表盘 ========== */
 .dashboard-grid {
     display: grid;

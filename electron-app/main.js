@@ -118,6 +118,24 @@ ipcMain.handle('service:stop', async (_event, serviceName) => {
     }
 });
 
+ipcMain.handle('service:start-all', async () => {
+    try {
+        const result = serviceManager.startAll();
+        return { success: true, data: result };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('service:stop-all', async () => {
+    try {
+        await serviceManager.stopAll();
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
 ipcMain.handle('service:status', async () => {
     return serviceManager.getAllStatus();
 });

@@ -69,6 +69,10 @@ const App = {
         if (btnStartSummary) {
             btnStartSummary.addEventListener('click', () => App.toggleService('summary'));
         }
+        const btnToggleAll = document.getElementById('btn-toggle-all');
+        if (btnToggleAll) {
+            btnToggleAll.addEventListener('click', () => App.toggleAllServices());
+        }
         const btnConfigEdit = document.getElementById('btn-config-edit');
         if (btnConfigEdit) {
             btnConfigEdit.addEventListener('click', () => App.navigateTo('config'));
@@ -249,6 +253,40 @@ const App = {
 
     // ========== 服务控制 ==========
 
+    /**
+     * 一键启停所有服务（截图+AI总结）
+     */
+    async toggleAllServices() {
+        try {
+            const status = await window.api.getStatus();
+            const allRunning = status.screenshot?.running && status.summary?.running;
+
+            let result;
+            if (allRunning) {
+                result = await window.api.stopAllServices();
+                if (result.success) {
+                    App.showToast('全部服务已停止', 'success');
+                }
+            } else {
+                result = await window.api.startAllServices();
+                if (result.success) {
+                    const data = result.data || {};
+                    const msg = `截图服务: ${data.screenshot ? '已启动' : '启动失败'}, AI总结: ${data.summary ? '已启动' : '启动失败'}`;
+                    App.showToast(msg, 'success');
+                }
+            }
+
+            if (!result.success) {
+                App.showToast(result.error || '操作失败', 'error');
+            }
+
+            setTimeout(() => App.refreshStatus(), 500);
+        } catch (err) {
+            console.error('一键服务操作失败:', err);
+            App.showToast('操作失败: ' + (err.message || '未知错误'), 'error');
+        }
+    },
+
     async toggleService(serviceName) {
         try {
             const status = await window.api.getStatus();
@@ -320,6 +358,30 @@ const App = {
         const btnSMPage = document.getElementById('btn-sm-toggle');
         btnSMPage.textContent = smRunning ? '停止服务' : '启动服务';
         btnSMPage.className = `btn ${smRunning ? 'btn-stop' : 'btn-start'}`;
+
+        // 一键启停按钮状态
+        const allRunning = ssRunning && smRunning;
+        const anyRunning = ssRunning || smRunning;
+        const btnAll = document.getElementById('btn-toggle-all');
+        const hintAll = document.getElementById('all-services-hint');
+        if (btnAll) {
+            if (allRunning) {
+                btnAll.textContent = '一键停止全部服务';
+                btnAll.className = 'btn btn-all-stop';
+            } else {
+                btnAll.textContent = '一键启动全部服务';
+                btnAll.className = 'btn btn-all-start';
+            }
+        }
+        if (hintAll) {
+            if (allRunning) {
+                hintAll.textContent = '截图服务和 AI 总结服务均在运行中';
+            } else if (anyRunning) {
+                hintAll.textContent = `${ssRunning ? '截图服务运行中' : 'AI 总结服务运行中'}，点击启动全部`;
+            } else {
+                hintAll.textContent = '同时启动截图服务和 AI 总结服务';
+            }
+        }
 
         // 更新配置信息显示
         App.updateConfigInfo();

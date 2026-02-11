@@ -22,7 +22,8 @@ class PromptBuilder {
     }
 
     /**
-     * 读取 Todo 任务列表和行为目录，格式化为 prompt 文本
+     * 读取 Todo 任务列表和行为目录，格式化为结构化 prompt 文本
+     * 使用 XML 标签结构化，便于模型准确理解任务层级、状态和上下文
      * @returns {string} 格式化后的文本，空字符串表示无数据或读取失败
      */
     _buildTodoContextText() {
@@ -30,27 +31,69 @@ class PromptBuilder {
 
         try {
             let text = '';
+            let hasContent = false;
 
             // 读取任务列表
             const todosFile = path.join(this.todoDataDir, 'todos.json');
             if (fs.existsSync(todosFile)) {
                 const todos = JSON.parse(fs.readFileSync(todosFile, 'utf-8'));
                 const activeTodos = todos.filter(t => !t.completed);
-                if (activeTodos.length > 0) {
-                    text += '普通任务\n';
+                const completedTodos = todos.filter(t => t.completed);
+
+                if (activeTodos.length > 0 || completedTodos.length > 0) {
+                    hasContent = true;
+                    text += `<task_directory count="${activeTodos.length}" completed_count="${completedTodos.length}">\n`;
+                    text += `  <description>以下是用户当前维护的任务列表。活动应优先归类到这些已有任务中。</description>\n`;
+
                     for (const todo of activeTodos) {
-                        text += `  ${todo.title}\n`;
-                        if (todo.description) {
-                            text += `  ${todo.description}\n`;
+                        const childTotal = todo.children ? todo.children.length : 0;
+                        const childActive = todo.children ? todo.children.filter(c => !c.completed).length : 0;
+                        const childCompleted = childTotal - childActive;
+
+                        text += `  <task name="${this._escapeXml(todo.title)}" status="进行中"`;
+                        if (childTotal > 0) {
+                            text += ` subtask_total="${childTotal}" subtask_active="${childActive}" subtask_completed="${childCompleted}"`;
                         }
+                        text += `>\n`;
+
+                        if (todo.description) {
+                            text += `    <task_context>${this._escapeXml(todo.description)}</task_context>\n`;
+                        }
+
                         if (todo.children && todo.children.length > 0) {
-                            for (const child of todo.children) {
-                                if (!child.completed) {
-                                    text += `    ${child.title}\n`;
+                            const activeChildren = todo.children.filter(c => !c.completed);
+                            const completedChildren = todo.children.filter(c => c.completed);
+
+                            if (activeChildren.length > 0) {
+                                text += `    <active_subtasks>\n`;
+                                for (const child of activeChildren) {
+                                    text += `      <subtask name="${this._escapeXml(child.title)}" />\n`;
                                 }
+                                text += `    </active_subtasks>\n`;
+                            }
+
+                            if (completedChildren.length > 0) {
+                                text += `    <completed_subtasks>\n`;
+                                for (const child of completedChildren) {
+                                    text += `      <subtask name="${this._escapeXml(child.title)}" />\n`;
+                                }
+                                text += `    </completed_subtasks>\n`;
                             }
                         }
+
+                        text += `  </task>\n`;
                     }
+
+                    // 已完成任务仅列出名称，供模型了解历史上下文
+                    if (completedTodos.length > 0) {
+                        text += `  <completed_tasks note="以下任务已完成，仅供参考历史上下文">\n`;
+                        for (const todo of completedTodos) {
+                            text += `    <task name="${this._escapeXml(todo.title)}" status="已完成" />\n`;
+                        }
+                        text += `  </completed_tasks>\n`;
+                    }
+
+                    text += `</task_directory>\n\n`;
                 }
             }
 
@@ -59,18 +102,40 @@ class PromptBuilder {
             if (fs.existsSync(behaviorsFile)) {
                 const behaviors = JSON.parse(fs.readFileSync(behaviorsFile, 'utf-8'));
                 if (behaviors.length > 0) {
-                    text += '行为类型\n';
+                    hasContent = true;
+                    text += `<behavior_directory count="${behaviors.length}">\n`;
+                    text += `  <description>以下是用户自定义的常见行为类型。非任务性质的日常操作应归类到这些行为中。</description>\n`;
                     for (const b of behaviors) {
-                        text += `  ${b.name}\n`;
+                        text += `  <behavior name="${this._escapeXml(b.name)}"`;
+                        if (b.description) {
+                            text += ` context="${this._escapeXml(b.description)}"`;
+                        }
+                        text += ` />\n`;
                     }
+                    text += `</behavior_directory>`;
                 }
             }
 
-            return text.trim();
+            return hasContent ? text.trim() : '';
         } catch (err) {
             this.logger.warn(`读取 Todo 数据失败（不影响主流程）: ${err.message}`);
             return '';
         }
+    }
+
+    /**
+     * 转义 XML 特殊字符
+     * @param {string} str - 原始字符串
+     * @returns {string} 转义后的字符串
+     */
+    _escapeXml(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
     }
 
     /**
@@ -90,22 +155,24 @@ class PromptBuilder {
         // 1. System Prompt
         contents.push(this._get2minPrompt());
 
-        // 1.5 注入 Todo 任务/行为目录
+        // 1.5 注入 Todo 任务/行为目录（结构化格式）
         const todoText = this._buildTodoContextText();
         if (todoText) {
             contents.push(
-                `\n【用户任务与行为目录】\n` +
-                `以下是用户当前的任务列表和行为类型，请基于这些信息对活动进行归类。\n` +
-                `${todoText}\n` +
-                `归类规则:\n` +
-                `- 优先将活动归类到已有的任务或行为中。\n` +
-                `- category_type、category_name、subtask_name 都是列表,按主次顺序排列,三者一一对应。\n` +
-                `- 如果活动明确属于某个主任务下的具体子任务，category_type 中对应元素填"任务"，category_name 中填主任务名，subtask_name 中填子任务名。\n` +
-                `- 如果活动属于某个主任务但没有明显的子任务行为，category_type 中填"任务"，category_name 中填主任务名，subtask_name 中填空字符串。\n` +
-                `- 如果活动属于某个行为类型，category_type 中填"行为"，category_name 中填行为名，subtask_name 中填空字符串。\n` +
-                `- 如果无法归类到已有的任务或行为，可以新建：category_type 中填"新建任务"或"新建行为"，category_name 中填你建议的名称。\n` +
-                `- 新建行为的名称需要适度具体，例如"使用ChatGPT查询技术问题"是合适的，"浏览网站"太宽泛，"使用chatgpt搜索2025年JS框架对比"太具体。\n` +
-                `- 如果你认为当前活动应该作为某个已有主任务的新子任务，category_type 中填"任务"，category_name 中填已有的主任务名，subtask_name 中填你建议的新子任务名。`
+                `\n【用户任务与行为目录 — 活动归类参考】\n\n` +
+                `${todoText}\n\n` +
+                `<classification_rules>\n` +
+                `  <rule priority="1">优先将活动归类到上述 <task_directory> 中已有的任务。参考 <task_context> 判断活动是否与该任务相关。</rule>\n` +
+                `  <rule priority="2">如果活动不属于任何任务，则归类到 <behavior_directory> 中已有的行为类型。</rule>\n` +
+                `  <rule priority="3">如果活动无法归类到任何已有项，可新建：category_type 填"新建任务"或"新建行为"，category_name 填建议名称。</rule>\n` +
+                `  <output_format>\n` +
+                `    - category_type、category_name、subtask_name 都是列表，按主次顺序排列，三者一一对应。\n` +
+                `    - 归类到任务时：category_type="任务"，category_name=任务的 name 属性值，subtask_name=匹配的子任务名或空字符串。\n` +
+                `    - 归类到行为时：category_type="行为"，category_name=行为的 name 属性值，subtask_name=""。\n` +
+                `    - 如果当前活动应作为某个已有任务的新子任务：category_type="任务"，category_name=已有任务名，subtask_name=建议的新子任务名。\n` +
+                `    - 新建行为命名原则：适度具体（如"使用ChatGPT查询技术问题"），不要太宽泛（如"浏览网站"），也不要太具体（如"搜索2025年JS框架对比"）。\n` +
+                `  </output_format>\n` +
+                `</classification_rules>`
             );
         }
 
@@ -161,13 +228,18 @@ class PromptBuilder {
         // 1. System Prompt
         contents.push(this._get10minPrompt());
 
-        // 1.5 注入 Todo 任务/行为目录
+        // 1.5 注入 Todo 任务/行为目录（结构化格式）
         const todoText10 = this._buildTodoContextText();
         if (todoText10) {
             contents.push(
-                `\n【用户任务与行为目录】\n` +
-                `${todoText10}\n` +
-                `归类规则: 从2min总结的 category_type/category_name/subtask_name 列表字段聚合，activity_timeline 的 label 使用 category_name 中的各元素（主任务名或行为名），category_type 使用对应元素，如有子任务则在 subtasks 中体现。旧数据中若 category_name 为字符串则视为单元素列表；若无 category_name 但有 task_label，用 task_label[0] 作为 label，category_type 视为"行为"。`
+                `\n【用户任务与行为目录 — 时间轴归类参考】\n\n` +
+                `${todoText10}\n\n` +
+                `<aggregation_rules>\n` +
+                `  <rule>从2min总结的 category_type/category_name/subtask_name 列表字段聚合。</rule>\n` +
+                `  <rule>activity_timeline 的 label 使用 category_name 中的各元素（即上述目录中 <task> 或 <behavior> 的 name 属性值），category_type 使用对应元素。</rule>\n` +
+                `  <rule>如有子任务（对应 <active_subtasks> 中的 subtask），则在 subtasks 数组中体现。</rule>\n` +
+                `  <rule>旧数据兼容：category_name 为字符串时视为单元素列表；无 category_name 但有 task_label 时，用 task_label[0] 作为 label，category_type 视为"行为"。</rule>\n` +
+                `</aggregation_rules>`
             );
         }
 
@@ -210,13 +282,16 @@ class PromptBuilder {
         // 1. System Prompt
         contents.push(this._get1hPrompt());
 
-        // 1.5 注入 Todo 任务/行为目录
+        // 1.5 注入 Todo 任务/行为目录（结构化格式）
         const todoText1h = this._buildTodoContextText();
         if (todoText1h) {
             contents.push(
-                `\n【用户任务与行为目录】\n` +
-                `${todoText1h}\n` +
-                `归类规则: 从10min总结的 activity_timeline 中聚合，time_distribution 的 label 使用任务名或行为名。旧数据中若无 category_type 字段，视为"行为"类型。`
+                `\n【用户任务与行为目录 — 时间分布归类参考】\n\n` +
+                `${todoText1h}\n\n` +
+                `<aggregation_rules>\n` +
+                `  <rule>从10min总结的 activity_timeline 中聚合，time_distribution 的 label 使用上述目录中 <task> 或 <behavior> 的 name 属性值。</rule>\n` +
+                `  <rule>旧数据兼容：无 category_type 字段的活动视为"行为"类型。</rule>\n` +
+                `</aggregation_rules>`
             );
         }
 

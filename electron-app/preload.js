@@ -19,6 +19,12 @@ contextBridge.exposeInMainWorld('api', {
     /** 停止服务 */
     stopService: (serviceName) => ipcRenderer.invoke('service:stop', serviceName),
 
+    /** 一键启动所有服务（截图+AI总结） */
+    startAllServices: () => ipcRenderer.invoke('service:start-all'),
+
+    /** 一键停止所有服务 */
+    stopAllServices: () => ipcRenderer.invoke('service:stop-all'),
+
     /** 获取所有服务状态 */
     getStatus: () => ipcRenderer.invoke('service:status'),
 

@@ -213,6 +213,36 @@ class ServiceManager extends EventEmitter {
     }
 
     /**
+     * 一键启动所有服务（截图+AI总结）
+     * 如果某个服务已在运行，则跳过
+     * @returns {{ screenshot: boolean, summary: boolean }} 各服务启动结果
+     */
+    startAll() {
+        const result = { screenshot: false, summary: false };
+        if (!this.processes.screenshot) {
+            result.screenshot = this.startService('screenshot');
+        } else {
+            this._addLog('screenshot', 'info', '服务已在运行中，跳过启动');
+            result.screenshot = true;
+        }
+        if (!this.processes.summary) {
+            result.summary = this.startService('summary');
+        } else {
+            this._addLog('summary', 'info', '服务已在运行中，跳过启动');
+            result.summary = true;
+        }
+        return result;
+    }
+
+    /**
+     * 判断是否所有服务都在运行
+     * @returns {boolean}
+     */
+    isAllRunning() {
+        return !!this.processes.screenshot && !!this.processes.summary;
+    }
+
+    /**
      * 获取服务状态（不含 logs，避免 IPC 传输大量日志数据）
      * @param {string} serviceName - 'screenshot' | 'summary'
      * @returns {Object} 服务状态（running, pid, startTime）
