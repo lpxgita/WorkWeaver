@@ -851,7 +851,10 @@ const App = {
         }
 
         const pxPerMinute = 6;
-        const width = Math.max(300, (data.rangeEnd - data.rangeStart) * pxPerMinute);
+        // 时间轴内容宽度
+        const timelineWidth = Math.max(300, (data.rangeEnd - data.rangeStart) * pxPerMinute);
+        // 右侧预留 100px 防止末尾标签被截断
+        const width = timelineWidth + 100;
 
         container.innerHTML = '';
         const scroll = document.createElement('div');
@@ -866,6 +869,8 @@ const App = {
 
         const body = document.createElement('div');
         body.className = 'summary-timeline-body';
+        // 让泳道行填满时间轴内容宽度（不含右侧预留区）
+        body.style.width = `${timelineWidth}px`;
 
         canvas.appendChild(header);
         canvas.appendChild(body);
@@ -906,15 +911,15 @@ const App = {
                 bar.title = `${lane.label} ${App.formatMinuteLabel(seg.startMinute)} - ${App.formatMinuteLabel(seg.endMinute)} (${seg.minutes}分钟)` +
                     (lane.segments.length > 1 ? ` | 累计 ${totalMinutes}分钟` : '');
 
-                if (i === 0) {
-                    const labelSpan = document.createElement('span');
-                    labelSpan.className = 'summary-timeline-bar-label';
-                    labelSpan.textContent = lane.label;
-                    bar.appendChild(labelSpan);
-                }
-
                 row.appendChild(bar);
             }
+
+            // 浮动吸附标签：独立于 bar 之外，始终可见
+            const stickyLabel = document.createElement('div');
+            stickyLabel.className = `summary-timeline-sticky-label summary-timeline-color-${colorIndex}`;
+            stickyLabel.textContent = lane.label;
+            stickyLabel.title = `${lane.label} (累计 ${totalMinutes}分钟)`;
+            row.appendChild(stickyLabel);
 
             body.appendChild(row);
         }
@@ -938,6 +943,23 @@ const App = {
             marker.appendChild(dot);
             canvas.appendChild(marker);
         }
+
+        // 监听横向滚动，动态更新浮动吸附标签位置
+        const stickyLabels = body.querySelectorAll('.summary-timeline-sticky-label');
+        const updateStickyLabels = () => {
+            const scrollLeft = scroll.scrollLeft;
+            stickyLabels.forEach(label => {
+                label.style.left = `${scrollLeft}px`;
+            });
+        };
+        scroll.addEventListener('scroll', updateStickyLabels);
+
+        // 默认滚动到最右侧，显示最近的活动
+        requestAnimationFrame(() => {
+            scroll.scrollLeft = scroll.scrollWidth - scroll.clientWidth;
+            // 滚动后立即更新吸附标签位置
+            updateStickyLabels();
+        });
     },
 
     /**

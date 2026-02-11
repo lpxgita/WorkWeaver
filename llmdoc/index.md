@@ -11,8 +11,8 @@
 - [配置加载与校验](architecture/config-validation.md) - YAML 解析、默认值合并与参数校验
 - [CLI 接口与运行生命周期](architecture/cli-lifecycle.md) - 参数解析、模块初始化顺序与优雅关闭
 - [AI 总结模块架构](architecture/ai-summary-architecture.md) - Gemini API 集成、多粒度总结、跨时间聚合
-- [Prompt 与 Output Schema 设计思路](architecture/prompt-schema-design.md) - 各粒度字段选择理由、浏览/操作区分、跨粒度聚合链路、与原始设计差异
-- [Electron 桌面应用架构](architecture/electron-app-architecture.md) - 主进程/渲染进程分离、IPC 通信、服务进程管理与打包（含 Todo List 模块）
+- [Prompt 与 Output Schema 设计思路](architecture/prompt-schema-design.md) - 各粒度字段选择理由、浏览/操作区分、跨粒度聚合链路、Todo 信息 XML 结构化注入、与原始设计差异
+- [Electron 桌面应用架构](architecture/electron-app-architecture.md) - 主进程/渲染进程分离、IPC 通信、服务进程管理与打包（含 Todo List 模块、一键启停全部服务）
 - [焦点窗口监控组件架构](architecture/active-window-monitor.md) - AppleScript 获取焦点窗口、事件驱动、独立组件设计
 
 ## Guides（操作指南）
@@ -31,6 +31,7 @@
 - [系统级功能交接点评审报告（2026-02-10）](agent/系统级功能交接点评审报告-2026-02-10.md) - 从全局视角梳理模块交接点、核对焦点窗口时间线格式并给出分级改进方案
 
 ## Changelog（变更记录）
+- [1.0.10（2026-02-11）](changelog/1.0.10.md) - 时间线样式优化：圆角缩小、泳道背景对齐、任务名浮动吸附、默认滚动到最新活动
 - [1.0.9（2026-02-11）](changelog/1.0.9.md) - Prompt Todo 信息结构化改造（XML 标签）、一键启停全部服务、README 费用与隐私提示
 - [1.0.8（2026-02-11）](changelog/1.0.8.md) - Electron 侧边栏底部新增版本号显示，标题统一更新为 WorkWeaver
 - [1.0.7（2026-02-11）](changelog/1.0.7.md) - 项目重命名为 WorkWeaver，创建 .gitignore，首次上传 GitHub

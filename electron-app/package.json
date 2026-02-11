@@ -1,6 +1,6 @@
 {
   "name": "work-weaver",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "WorkWeaver - 工作活动监控桌面应用",
   "main": "main.js",
   "scripts": {

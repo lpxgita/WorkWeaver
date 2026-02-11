@@ -173,11 +173,29 @@ duration_minutes ───→  activity_timeline       ───→  time_distri
 - 差距 > 2 倍粒度间隔（2min 基础即 > 4 分钟）视为断档。
 - 注入断档提示：duration_minutes 重新从 2 开始、task_status 标注"继续"。
 
+### Todo 任务/行为目录注入（结构化 XML 格式）
+
+**问题**：AI 需要知道用户定义的任务列表和行为类型，才能将屏幕活动归类到正确的分类中。早期采用纯文本缩进格式传输，缺少类型标签、任务描述、子任务状态等结构化信息，不利于模型准确理解层级关系和归类依据。
+
+**方案**（`prompt-builder.js` `_buildTodoContextText()`）：
+- 使用 XML 标签结构化格式替代纯文本缩进列表。
+- `<task_directory>` 包含活跃/已完成任务计数；每个 `<task>` 含 `name`/`status`/子任务统计属性。
+- `<task_context>` 提供任务描述，帮助模型理解活动与任务的关联性。
+- `<active_subtasks>` / `<completed_subtasks>` 区分子任务状态，便于模型匹配 subtask_name。
+- `<behavior_directory>` + `<behavior>` 提供行为目录和可选描述。
+- `<completed_tasks>` 保留已完成任务列表供历史上下文参考。
+- XML 特殊字符通过 `_escapeXml()` 转义。
+
+**各粒度归类规则注入**：
+- 2min：`<classification_rules>` 按优先级排列（任务 → 行为 → 新建），含 `<output_format>` 说明输出格式。
+- 10min：`<aggregation_rules>` 说明从 2min 聚合到 activity_timeline 的规则。
+- 1h：`<aggregation_rules>` 说明从 10min 聚合到 time_distribution 的规则。
+
 ### 焦点窗口信息注入
 
 **问题**：截图只能看到画面内容，无法精确知道用户当前聚焦的是哪个应用窗口。
 
-**方案**（`active-window-collector.js`，`prompt-builder.js:47-54`）：
+**方案**（`active-window-collector.js`，`prompt-builder.js`）：
 - 采集器以 1 秒间隔通过 AppleScript 获取焦点窗口。
 - 格式化为 `"完整焦点窗口名(应用名-窗口标题)" HH:MM:SS-HH:MM:SS` 时间线。
 - 各粒度通过时间范围查询获取对应窗口记录，注入 prompt。
@@ -218,3 +236,4 @@ duration_minutes ───→  activity_timeline       ───→  time_distri
 | 焦点窗口 | 无 | 有（注入窗口时间线） |
 | 无变化跳过 | 无 | 有（逐级传播） |
 | 旧数据兼容 | — | 无 category_type 的旧数据默认视为"行为"类型；无 category_name 但有 task_label 的旧数据用 task_label[0] 作为 label |
+| Todo 注入格式 | — | XML 结构化标签（task_directory/behavior_directory/classification_rules），含任务描述、子任务状态、归类优先级 |

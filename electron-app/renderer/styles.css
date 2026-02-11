@@ -637,8 +637,6 @@ body {
     min-height: 120px;
     padding-top: 26px;
     padding-bottom: 6px;
-    /* 右侧预留空间，防止最末尾 bar 的溢出标签被截断 */
-    padding-right: 100px;
 }
 
 .summary-timeline-header-row {
@@ -675,6 +673,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    /* 确保泳道行填满整个 canvas 宽度 */
+    width: 100%;
 }
 
 .summary-timeline-row {
@@ -682,7 +682,7 @@ body {
     height: 40px;
     background: var(--bg-input);
     border: 1px solid var(--border-light);
-    border-radius: var(--radius-sm);
+    border-radius: 3px;
     /* 不裁剪溢出内容，允许标签文字延伸到 bar 外部 */
     overflow: visible;
 }
@@ -691,7 +691,7 @@ body {
     position: absolute;
     top: 5px;
     height: 30px;
-    border-radius: 12px;
+    border-radius: 3px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -703,13 +703,32 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-/* 标签文字：允许超出 bar 宽度向后延伸 */
+/* 旧标签样式保留兼容 */
 .summary-timeline-bar-label {
     padding: 0 10px;
     white-space: nowrap;
     pointer-events: none;
     position: relative;
     z-index: 1;
+}
+
+/* 浮动吸附标签：始终可见在泳道左侧 */
+.summary-timeline-sticky-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 12px;
+    color: #ffffff;
+    white-space: nowrap;
+    z-index: 5;
+    pointer-events: none;
+    border-radius: 3px;
+    /* 半透明背景色，继承色块颜色 */
+    background: inherit;
 }
 
 /* 深色主题适配：使用中等饱和度色块，配合白色文字 */
