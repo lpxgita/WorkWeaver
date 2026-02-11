@@ -103,5 +103,5 @@ If `llmdoc/` doesn't exist:
 ## Rules!!!!!!!!!!
 1. once done a code task, update electron app build version, such like 1.0.1-> 1.0.2
 2. each update version's main feature should be recorded in the docllm/changelog/ root
-3. each version change should be push to github
+3. each version change should be push to github, push to main branch and tag it.
 

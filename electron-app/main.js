@@ -92,6 +92,12 @@ function createWindow() {
     });
 }
 
+// ========== IPC 处理：应用信息 ==========
+
+ipcMain.handle('app:version', () => {
+    return app.getVersion();
+});
+
 // ========== IPC 处理：服务控制 ==========
 
 ipcMain.handle('service:start', async (_event, serviceName) => {

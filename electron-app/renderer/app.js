@@ -39,6 +39,15 @@ const App = {
             App.refreshStatus();
         });
 
+        // 加载版本号到侧边栏
+        try {
+            const version = await window.api.getVersion();
+            const versionEl = document.getElementById('sidebar-version');
+            if (versionEl && version) {
+                versionEl.textContent = `v${version}`;
+            }
+        } catch (err) { console.error('加载版本号失败:', err); }
+
         // 初始加载（各模块独立容错，避免一个失败导致全部不可用）
         try { await App.refreshStatus(); } catch (err) { console.error('初始化状态失败:', err); }
         try { await App.loadConfigToForm(); } catch (err) { console.error('初始化配置失败:', err); }

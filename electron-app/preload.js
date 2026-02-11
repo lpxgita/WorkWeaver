@@ -6,6 +6,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+    // ========== 应用信息 ==========
+
+    /** 获取应用版本号 */
+    getVersion: () => ipcRenderer.invoke('app:version'),
+
     // ========== 服务控制 ==========
 
     /** 启动服务 */
