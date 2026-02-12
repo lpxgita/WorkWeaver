@@ -227,7 +227,8 @@ class TodoStore {
             name,
             description,
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            source: 'user'       // 标记为用户主动创建
         };
         behaviors.push(behavior);
         this._writeJSON(this.behaviorsFile, behaviors);

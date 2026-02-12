@@ -35,6 +35,7 @@
 - 焦点窗口采集：`ai_summary/src/active-window-collector.js`（ActiveWindowCollector）优先封装 `ai_summary/src/active-window-monitor.js`（打包兼容），回退到 `active_window/src/active-window-monitor.js`（开发兼容）。在 `main.js` 启动时初始化并持续采集。各粒度执行时通过 `getTimelineInRange()` 获取对应时间范围内的窗口切换记录，`formatForPrompt()` 格式化为 `"完整焦点窗口名(应用名-窗口标题)" HH:MM:SS-HH:MM:SS` 文本注入 prompt。
 - Prompt 日志记录：`ai_summary/src/prompt-logger.js`（PromptLogger）在各粒度的 `_run*` 方法中，prompt 构建后调用 `promptLogger.log(granularity, timestamp, contents)` 持久化。存储路径: `{summary.directory}/prompt-logs/{YYYY-MM-DD}/{粒度}/HH-mm.txt`。
 - 提示词构建：`ai_summary/src/prompt-builder.js`（PromptBuilder.build2min/build10min/build1h）组装系统提示、Todo 任务/行为目录（XML 结构化格式）、焦点窗口时间线、历史输入与截图。历史总结头部时间使用完整跨度展示（开始时间-结束时间），而非单时间点。Todo 目录通过 `_buildTodoContextText()` 从 JSON 文件读取并格式化为 XML 标签（`<task_directory>`/`<behavior_directory>`），各粒度附加对应的归类规则标签（`<classification_rules>` / `<aggregation_rules>`）。XML 特殊字符通过 `_escapeXml()` 转义。
+- 行为目录过滤：`PromptBuilder` 将行为分为三类：用户主动设置、AI 提出且最近 7 天有分类记录、AI 提出且最近 7 天无分类记录。构建 prompt 时仅注入前两类，第三类自动排除，减少陈旧 AI 行为对当前归类的干扰。
 - Token 用量跟踪：`ai_summary/src/token-tracker.js`（TokenTracker）在每次 Gemini API 调用后记录 `usageMetadata` 中的 token 计数。`GeminiClient.generate()` 返回 `{text, usageMetadata}`，各粒度的 `_run*` 方法调用 `tokenTracker.record(granularity, usageMetadata)` 记录。数据按日期存储于 `{summary.directory}/token-stats/YYYY-MM-DD.json`，按会话（session）分组，支持按分钟/粒度/时间范围查询。
 
 ## 4. Output Schema (各粒度 JSON 字段)

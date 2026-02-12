@@ -14,11 +14,21 @@ class PromptBuilder {
      * @param {Logger} logger - 日志模块
      * @param {Object} [options] - 可选配置
      * @param {string} [options.todoDataDir] - Todo 数据目录路径（含 todos.json / behaviors.json）
+     * @param {string} [options.summaryDir] - 总结目录路径（用于统计行为近7天分类记录）
+     * @param {number} [options.behaviorRecentDays] - 行为分类记录回溯天数（默认 7）
      */
     constructor(geminiClient, logger, options = {}) {
         this.geminiClient = geminiClient;
         this.logger = logger;
         this.todoDataDir = options.todoDataDir || null;
+        this.summaryDir = options.summaryDir ? this._resolveSummaryDir(options.summaryDir) : null;
+        this.behaviorRecentDays = Number.isInteger(options.behaviorRecentDays) && options.behaviorRecentDays > 0
+            ? options.behaviorRecentDays
+            : 7;
+        this._behaviorUsageCache = {
+            expiresAt: 0,
+            names: new Set()
+        };
     }
 
     /**
@@ -102,17 +112,34 @@ class PromptBuilder {
             if (fs.existsSync(behaviorsFile)) {
                 const behaviors = JSON.parse(fs.readFileSync(behaviorsFile, 'utf-8'));
                 if (behaviors.length > 0) {
-                    hasContent = true;
-                    text += `<behavior_directory count="${behaviors.length}">\n`;
-                    text += `  <description>以下是用户自定义的常见行为类型。非任务性质的日常操作应归类到这些行为中。</description>\n`;
-                    for (const b of behaviors) {
-                        text += `  <behavior name="${this._escapeXml(b.name)}"`;
-                        if (b.description) {
-                            text += ` context="${this._escapeXml(b.description)}"`;
+                    const recentBehaviorNames = this._getRecentClassifiedBehaviorNames();
+                    const {
+                        userDefinedBehaviors,
+                        aiRecentBehaviors,
+                        aiStaleBehaviors
+                    } = this._splitBehaviorsByCategory(behaviors, recentBehaviorNames);
+                    const includedBehaviors = [...userDefinedBehaviors, ...aiRecentBehaviors];
+
+                    if (includedBehaviors.length > 0) {
+                        hasContent = true;
+                        text += `<behavior_directory count="${includedBehaviors.length}" user_defined_count="${userDefinedBehaviors.length}" ai_recent_count="${aiRecentBehaviors.length}">\n`;
+                        text += `  <description>以下是可用于归类的行为类型：用户主动设置的行为 + AI 提出且最近${this.behaviorRecentDays}天内有分类记录的行为。AI 提出但最近${this.behaviorRecentDays}天没有分类记录的行为已自动排除。</description>\n`;
+                        for (const b of includedBehaviors) {
+                            const sourceType = this._isAiCreatedBehavior(b) ? 'ai_recent' : 'user_defined';
+                            text += `  <behavior name="${this._escapeXml(b.name)}" source_type="${sourceType}"`;
+                            if (b.description) {
+                                text += ` context="${this._escapeXml(b.description)}"`;
+                            }
+                            text += ` />\n`;
                         }
-                        text += ` />\n`;
+                        text += `</behavior_directory>`;
                     }
-                    text += `</behavior_directory>`;
+
+                    if (aiStaleBehaviors.length > 0) {
+                        this.logger.debug(
+                            `[PromptBuilder] 行为目录过滤: 用户行为 ${userDefinedBehaviors.length} 条, AI近期行为 ${aiRecentBehaviors.length} 条, 已排除 AI未使用行为 ${aiStaleBehaviors.length} 条`
+                        );
+                    }
                 }
             }
 
@@ -121,6 +148,204 @@ class PromptBuilder {
             this.logger.warn(`读取 Todo 数据失败（不影响主流程）: ${err.message}`);
             return '';
         }
+    }
+
+    /**
+     * 将 summary 目录路径解析为绝对路径
+     * @param {string} summaryDir - 原始路径
+     * @returns {string}
+     */
+    _resolveSummaryDir(summaryDir) {
+        if (!summaryDir || typeof summaryDir !== 'string') {
+            return '';
+        }
+        return path.isAbsolute(summaryDir)
+            ? summaryDir
+            : path.resolve(process.cwd(), summaryDir);
+    }
+
+    /**
+     * 获取近 N 天有分类记录的行为名称集合
+     * 数据来源：summary 目录下最近 N 天的 2min 总结
+     * @returns {Set<string>}
+     */
+    _getRecentClassifiedBehaviorNames() {
+        const now = Date.now();
+        if (now < this._behaviorUsageCache.expiresAt) {
+            return this._behaviorUsageCache.names;
+        }
+
+        const names = new Set();
+        if (!this.summaryDir || !fs.existsSync(this.summaryDir)) {
+            this._behaviorUsageCache = { expiresAt: now + 60 * 1000, names };
+            return names;
+        }
+
+        const thresholdMs = now - this.behaviorRecentDays * 24 * 60 * 60 * 1000;
+        const thresholdDate = this._formatDate(new Date(thresholdMs));
+
+        try {
+            const dateDirs = fs.readdirSync(this.summaryDir)
+                .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d))
+                .filter(d => d >= thresholdDate)
+                .filter(d => fs.statSync(path.join(this.summaryDir, d)).isDirectory())
+                .sort();
+
+            for (const dateDir of dateDirs) {
+                const granularityDir = path.join(this.summaryDir, dateDir, '2min');
+                if (!fs.existsSync(granularityDir)) {
+                    continue;
+                }
+
+                const summaryFiles = fs.readdirSync(granularityDir)
+                    .filter(f => f.endsWith('.json'))
+                    .sort();
+
+                for (const file of summaryFiles) {
+                    const filePath = path.join(granularityDir, file);
+                    let summary = null;
+                    try {
+                        summary = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+                    } catch (_err) {
+                        continue;
+                    }
+
+                    if (!summary || !summary.timestamp) {
+                        continue;
+                    }
+
+                    const ts = new Date(summary.timestamp).getTime();
+                    if (Number.isNaN(ts) || ts < thresholdMs) {
+                        continue;
+                    }
+
+                    this._collectBehaviorNamesFromSummary(summary, names);
+                }
+            }
+        } catch (err) {
+            this.logger.warn(`读取行为近期分类记录失败（不影响主流程）: ${err.message}`);
+        }
+
+        this._behaviorUsageCache = { expiresAt: now + 60 * 1000, names };
+        return names;
+    }
+
+    /**
+     * 从单条 2min 总结提取行为名称
+     * @param {Object} summary - 2min 总结记录
+     * @param {Set<string>} targetSet - 行为名称集合
+     */
+    _collectBehaviorNamesFromSummary(summary, targetSet) {
+        const names = this._normalizeToArray(summary.category_name);
+        const fallbackNames = names.length > 0 ? names : this._normalizeToArray(summary.task_label);
+        if (fallbackNames.length === 0) {
+            return;
+        }
+
+        const types = this._normalizeToArray(summary.category_type);
+        if (types.length === 0) {
+            // 旧数据兼容：无 category_type 时默认视为行为
+            for (const name of fallbackNames) {
+                targetSet.add(name);
+            }
+            return;
+        }
+
+        for (let i = 0; i < fallbackNames.length; i++) {
+            const type = i < types.length ? types[i] : '';
+            if (this._isBehaviorType(type)) {
+                targetSet.add(fallbackNames[i]);
+            }
+        }
+    }
+
+    /**
+     * 将行为按三类切分：
+     * 1) 用户主动设置
+     * 2) AI 提出且近 N 天有分类记录
+     * 3) AI 提出且近 N 天无分类记录
+     * @param {Array<Object>} behaviors - 行为列表
+     * @param {Set<string>} recentBehaviorNames - 近 N 天有分类记录的行为名称集合
+     * @returns {{userDefinedBehaviors: Array<Object>, aiRecentBehaviors: Array<Object>, aiStaleBehaviors: Array<Object>}}
+     */
+    _splitBehaviorsByCategory(behaviors, recentBehaviorNames) {
+        const userDefinedBehaviors = [];
+        const aiRecentBehaviors = [];
+        const aiStaleBehaviors = [];
+
+        for (const behavior of behaviors) {
+            const name = typeof behavior.name === 'string' ? behavior.name.trim() : '';
+            if (!name) continue;
+
+            if (!this._isAiCreatedBehavior(behavior)) {
+                userDefinedBehaviors.push(behavior);
+                continue;
+            }
+
+            if (recentBehaviorNames.has(name)) {
+                aiRecentBehaviors.push(behavior);
+            } else {
+                aiStaleBehaviors.push(behavior);
+            }
+        }
+
+        return {
+            userDefinedBehaviors,
+            aiRecentBehaviors,
+            aiStaleBehaviors
+        };
+    }
+
+    /**
+     * 判断行为是否由 AI 自动创建
+     * @param {Object} behavior - 行为对象
+     * @returns {boolean}
+     */
+    _isAiCreatedBehavior(behavior) {
+        return behavior && behavior.source === 'ai';
+    }
+
+    /**
+     * 判断归类类型是否属于行为类
+     * @param {string} categoryType - 分类类型
+     * @returns {boolean}
+     */
+    _isBehaviorType(categoryType) {
+        if (!categoryType || typeof categoryType !== 'string') {
+            return false;
+        }
+        const lower = categoryType.trim().toLowerCase();
+        return categoryType.includes('行为') || lower === 'behavior' || lower === 'new_behavior';
+    }
+
+    /**
+     * 统一将值转为字符串数组
+     * @param {*} value - 原始值（字符串/数组）
+     * @returns {Array<string>}
+     */
+    _normalizeToArray(value) {
+        if (Array.isArray(value)) {
+            return value
+                .map(v => (typeof v === 'string' ? v.trim() : ''))
+                .filter(v => v !== '');
+        }
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed ? [trimmed] : [];
+        }
+        return [];
+    }
+
+    /**
+     * 日期格式化（YYYY-MM-DD）
+     * @param {Date} date - 日期对象
+     * @returns {string}
+     */
+    _formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     /**
@@ -170,7 +395,7 @@ class PromptBuilder {
                 `    - 归类到任务时：category_type="任务"，category_name=任务的 name 属性值，subtask_name=匹配的子任务名或空字符串。\n` +
                 `    - 归类到行为时：category_type="行为"，category_name=行为的 name 属性值，subtask_name=""。\n` +
                 `    - 如果当前活动应作为某个已有任务的新子任务：category_type="任务"，category_name=已有任务名，subtask_name=建议的新子任务名。\n` +
-                `    - 新建行为命名原则：适度具体（如"使用ChatGPT查询技术问题"），不要太宽泛（如"浏览网站"），也不要太具体（如"搜索2025年JS框架对比"）。\n` +
+                `    - 新建行为命名原则：适度具体（如"使用ChatGPT"），不要太宽泛（如"浏览网站"），也不要太具体（如"搜索2025年JS框架对比"）。\n` +
                 `  </output_format>\n` +
                 `</classification_rules>`
             );

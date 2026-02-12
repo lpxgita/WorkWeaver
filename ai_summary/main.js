@@ -233,6 +233,8 @@ async function main() {
 
         // 6. 初始化提示词构建器（传入 todo 数据目录）
         const promptBuilderOptions = {};
+        promptBuilderOptions.summaryDir = config.summary.directory;
+        promptBuilderOptions.behaviorRecentDays = 7;
         if (args.todoDir) {
             promptBuilderOptions.todoDataDir = args.todoDir;
             logger.info(`Todo 数据目录: ${args.todoDir}`);
